@@ -1,5 +1,8 @@
 from PyQt5 import QtCore, QtGui
 import pickle as pickle
+import random
+import numpy as np
+import math
 
 default_row = [[0, [], '']]
 
@@ -80,7 +83,12 @@ class ExperimentModel(QtCore.QAbstractTableModel):
         try:
             with open(file_conf, 'rb') as fn:
                 arraydata = pickle.load(fn)
-
+                for i in arraydata:
+                    for index, j in enumerate(i[1]):
+                        if 'position' not in j:
+                            j['position'] = index
+                for i in arraydata[0][1]:
+                    print(i['position'])
             self.arraydata = arraydata
             self.layoutChanged.emit()
         except:
@@ -95,6 +103,16 @@ class ExperimentModel(QtCore.QAbstractTableModel):
             print("save failed")
             pass
 
+    def save_trial_names(self, file_conf):
+        try:
+            with open(file_conf[0] + file_conf[1], 'wb') as fn:
+                for i in self.arraydata:
+                    fn.write(i)
+                    fn.close()
+        except:
+            print('save failed')
+            pass
+
     def advance_trial(self):
         self.current_trial += 1
 
@@ -104,5 +122,13 @@ class ExperimentModel(QtCore.QAbstractTableModel):
     def total_trials(self):
         return len(self.arraydata)
 
-
-
+    def randomise_trials(self, global_params):
+        shuffle_offset = global_params['shuffle_offset']
+        shuffle_group_size = global_params['shuffle_group_size']
+        out_shuffle = list(self.arraydata[:shuffle_offset])
+        shuffle_indexes = np.arange((math.ceil(len(self.arraydata)-shuffle_offset)/shuffle_group_size))*shuffle_group_size+shuffle_offset
+        random.shuffle(shuffle_indexes)
+        for i in shuffle_indexes:
+            for j in range(shuffle_group_size):
+                out_shuffle.append(self.arraydata[int(i+j)])
+        self.arraydata = out_shuffle
